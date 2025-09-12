@@ -2,7 +2,7 @@ import { defineStore } from "pinia";
 
 interface Account {
   label: [] | string[];
-  typeRecord: string;
+  typeRecord: { name: string; type: string } | string;
   login: string;
   password: string;
 }
