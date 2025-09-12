@@ -4,7 +4,7 @@ interface Account {
   label: [] | string[];
   typeRecord: { name: string; type: string } | string;
   login: string;
-  password: string;
+  password: null | string;
 }
 
 export const useAccountsStore = defineStore("accounts", {
@@ -14,6 +14,11 @@ export const useAccountsStore = defineStore("accounts", {
   actions: {
     addAccount(account: Account) {
       this.accounts.push(account);
+    },
+    removeAccount(index: number) {
+      if (index >= 0 && index < this.accounts.length) {
+        this.accounts.splice(index, 1);
+      }
     },
   },
 });

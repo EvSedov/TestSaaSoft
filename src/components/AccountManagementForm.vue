@@ -26,6 +26,10 @@ const addAccount = () => {
   });
 };
 
+const remoweAccount = (index: number) => {
+  accountsStore.removeAccount(index);
+};
+
 watch(
   () => accounts.value,
   () => console.log(accounts.value),
@@ -108,8 +112,13 @@ watch(
       </template>
     </Column>
     <Column>
-      <template #body>
-        <Button icon="pi pi-trash" severity="danger" aria-label="Delete" />
+      <template #body="{ index }">
+        <Button
+          icon="pi pi-trash"
+          severity="danger"
+          aria-label="Delete"
+          @click="remoweAccount(index)"
+        />
       </template>
     </Column>
   </DataTable>
