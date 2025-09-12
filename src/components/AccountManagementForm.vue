@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import DataTable from "primevue/datatable";
 import Column from "primevue/column";
+import Button from "primevue/button";
 import { useAccountsStore } from "../store";
 import { storeToRefs } from "pinia";
 
@@ -11,9 +12,9 @@ const { accounts } = storeToRefs(accountsStore);
 <template>
   <DataTable :value="accounts" tableStyle="min-width: 50rem">
     <template #header>
-      <div class="flex flex-wrap items-center justify-between gap-2">
+      <div class="flex flex-wrap items-center gap-3">
         <span class="text-xl font-bold">Учетные записи</span>
-        <Button icon="pi pi-refresh" rounded raised />
+        <Button icon="pi pi-plus" severity="info" variant="outlined" />
       </div>
     </template>
     <Column field="label" header="Метки"></Column>
