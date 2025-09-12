@@ -12,7 +12,11 @@ import { ref, watch, shallowRef } from "vue";
 import { z } from "zod";
 import useValidation from "../useValidation";
 
-const textForLabel = ref("");
+const succeeded = ref<boolean>(false);
+const typeRecords = ref([
+  { name: "LDAP", type: "ldap" },
+  { name: "Локальная", type: "local" },
+]);
 const accountsStore = useAccountsStore();
 const { accounts } = storeToRefs(accountsStore);
 const validationSchema = shallowRef<any>(
@@ -34,14 +38,9 @@ const { validate, errors, isValid, getError, clearErrors } = useValidation(
   validationSchema,
   accounts,
   {
-    mode: "eager",
+    mode: "lazy",
   }
 );
-
-const typeRecords = ref([
-  { name: "LDAP", type: "ldap" },
-  { name: "Локальная", type: "local" },
-]);
 
 const addAccount = () => {
   accountsStore.addAccount({
@@ -59,8 +58,9 @@ const removeAccount = (index: number) => {
 const onBlure = async () => {
   await validate();
 
-  if (isValid.value) {
+  if (isValid.value && !succeeded.value) {
     alert("Validation succeeded!");
+    succeeded.value = true;
   }
 };
 
@@ -113,14 +113,15 @@ watch(
       <template #empty>Данные отсутствуют</template>
 
       <Column field="label" header="Метки" style="width: 24%" class="my-4">
-        <template #body="{ field, index }">
+        <template #body="{ data, field, index }">
           <InputText
             :id="`label-${index}`"
             v-if="field && typeof field === 'string'"
             type="text"
-            v-model="textForLabel"
+            v-model="data[field]"
             :class="{ 'p-invalid': !!getError('label') }"
             @blur="onBlure"
+            @update:modelValue="succeeded = false"
             autofocus="true"
           />
           <div class="error">{{ getError("label") }}</div>
@@ -134,6 +135,7 @@ watch(
             optionLabel="name"
             v-model="data[field]"
             placeholder="Тип записи"
+            @value-change="onBlure"
           /> </template
       ></Column>
       <Column field="login" header="Логин" style="width: 24%">
@@ -147,6 +149,7 @@ watch(
               required
               :class="{ 'p-invalid': !!getError('login') }"
               @blur="onBlure"
+              @update:modelValue="succeeded = false"
             />
             <div class="error absolute top-10 left-0">
               {{ getError("login") }}
@@ -176,6 +179,7 @@ watch(
               minlength="8"
               :class="{ 'p-invalid': !!getError('password') }"
               @blur="onBlure"
+              @update:modelValue="succeeded = false"
             />
             <div class="error absolute top-10 left-0">
               {{ getError("password") }}
