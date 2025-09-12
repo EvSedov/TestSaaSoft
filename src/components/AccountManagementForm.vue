@@ -5,9 +5,24 @@ import Button from "primevue/button";
 import Message from "primevue/message";
 import { useAccountsStore } from "../store";
 import { storeToRefs } from "pinia";
+import { watch } from "vue";
 
 const accountsStore = useAccountsStore();
 const { accounts } = storeToRefs(accountsStore);
+
+const addAccount = () => {
+  accountsStore.addAccount({
+    label: [],
+    typeRecord: "",
+    login: "",
+    password: "",
+  });
+};
+
+watch(
+  () => accounts.value,
+  () => console.log(accounts.value)
+);
 </script>
 
 <template>
@@ -15,7 +30,12 @@ const { accounts } = storeToRefs(accountsStore);
     <template #header>
       <div class="flex flex-wrap items-center gap-3 mb-3">
         <span class="text-xl font-bold">Учетные записи</span>
-        <Button icon="pi pi-plus" severity="info" variant="outlined" />
+        <Button
+          icon="pi pi-plus"
+          severity="info"
+          variant="outlined"
+          @click="addAccount"
+        />
       </div>
       <Message severity="info" icon="pi pi-question">
         <template #icon>
@@ -31,7 +51,9 @@ const { accounts } = storeToRefs(accountsStore);
         </span>
       </Message>
     </template>
+
     <template #empty>Данные отсутствуют</template>
+
     <Column field="label" header="Метки"></Column>
     <Column field="typeRecord" header="Тип записи"></Column>
     <Column field="login" header="Логин"></Column>
