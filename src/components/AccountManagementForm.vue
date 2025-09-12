@@ -104,7 +104,7 @@ watch(
           v-if="
             field &&
             typeof field === 'string' &&
-            data['typeRecord'].type === 'local'
+            data['typeRecord'].type !== 'ldap'
           "
           type="text"
           v-model="data[field]"
