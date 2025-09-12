@@ -1,14 +1,21 @@
 <script setup lang="ts">
 import DataTable from "primevue/datatable";
 import Column from "primevue/column";
+import Select from "primevue/select";
+import InputText from "primevue/inputtext";
+import Password from "primevue/password";
 import Button from "primevue/button";
 import Message from "primevue/message";
 import { useAccountsStore } from "../store";
 import { storeToRefs } from "pinia";
-import { watch } from "vue";
+import { ref, watch } from "vue";
 
 const accountsStore = useAccountsStore();
 const { accounts } = storeToRefs(accountsStore);
+const typeRecords = ref([
+  { name: "LDAP", type: "ldap" },
+  { name: "Локальная", type: "local" },
+]);
 
 const addAccount = () => {
   accountsStore.addAccount({
@@ -21,12 +28,18 @@ const addAccount = () => {
 
 watch(
   () => accounts.value,
-  () => console.log(accounts.value)
+  () => console.log(accounts.value),
+  { deep: true }
 );
 </script>
 
 <template>
-  <DataTable :value="accounts" tableStyle="min-width: 50rem">
+  <DataTable
+    :value="accounts"
+    resizableColumns
+    columnResizeMode="fit"
+    tableStyle="min-width: 40rem"
+  >
     <template #header>
       <div class="flex flex-wrap items-center gap-3 mb-3">
         <span class="text-xl font-bold">Учетные записи</span>
@@ -54,10 +67,51 @@ watch(
 
     <template #empty>Данные отсутствуют</template>
 
-    <Column field="label" header="Метки"></Column>
-    <Column field="typeRecord" header="Тип записи"></Column>
-    <Column field="login" header="Логин"></Column>
-    <Column field="password" header="Пароль"></Column>
+    <Column field="label" header="Метки">
+      <template #body="{ data, field }">
+        <InputText
+          v-if="field && typeof field === 'string'"
+          type="text"
+          v-model="data[field]"
+        />
+      </template>
+    </Column>
+    <Column field="typeRecord" header="Тип записи">
+      <template #body="{ data, field }">
+        <Select
+          v-if="field && typeof field === 'string'"
+          :options="typeRecords"
+          optionLabel="name"
+          v-model="data[field]"
+          placeholder="Тип записи"
+        /> </template
+    ></Column>
+    <Column field="login" header="Логин">
+      <template #body="{ data, field }">
+        <InputText
+          v-if="field && typeof field === 'string'"
+          type="text"
+          v-model="data[field]"
+        /> </template
+    ></Column>
+    <Column field="password" header="Пароль">
+      <template #body="{ data, field }">
+        <Password
+          v-if="
+            field &&
+            typeof field === 'string' &&
+            data['typeRecord'].type === 'local'
+          "
+          type="text"
+          v-model="data[field]"
+        />
+      </template>
+    </Column>
+    <Column>
+      <template #body>
+        <Button icon="pi pi-trash" severity="danger" aria-label="Delete" />
+      </template>
+    </Column>
   </DataTable>
 </template>
 
