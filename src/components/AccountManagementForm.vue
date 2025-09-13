@@ -20,6 +20,8 @@ import {
 import { z } from "zod";
 import useValidation from "../useValidation";
 import { debounce } from "lodash-es";
+import { useToast } from "primevue/usetoast";
+const toast = useToast();
 
 const ACCOUNT_KEY = "accounts_local_data";
 const succeeded = ref<boolean>(false);
@@ -76,19 +78,36 @@ const addAccount = () => {
     password: "",
   });
   saveData(accounts);
+  toast.add({
+    severity: "success",
+    summary: "Данные сохранены",
+    detail: "Добавлена новая пустая запись",
+    life: 3000,
+  });
 };
 
 const removeAccount = (index: number) => {
   accountsStore.removeAccount(index);
   saveData(accounts);
+  toast.add({
+    severity: "success",
+    summary: "Данные сохранены",
+    detail: "Запись успешно удалена",
+    life: 3000,
+  });
 };
 
 const onBlure = async () => {
   await validate();
 
   if (isValid.value && !succeeded.value) {
-    alert("Данные сохранены!");
     saveData(accounts);
+    toast.add({
+      severity: "success",
+      summary: "Данные сохранены",
+      detail: "Все записи провалидированы и обновлены",
+      life: 3000,
+    });
     succeeded.value = true;
   }
 };
