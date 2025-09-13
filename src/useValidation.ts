@@ -1,13 +1,7 @@
-import { z } from "zod";
-import { get, groupBy } from "lodash-es";
 import { ref, watch, toValue, type MaybeRefOrGetter } from "vue";
 import type { ZodTypeAny } from "zod/v3";
 
-export default function <
-  T extends ZodTypeAny,
-  U = Record<string, unknown>,
-  V = Record<string, z.ZodError[]>
->(
+export default function <T extends ZodTypeAny, U = Record<string, unknown>>(
   schema: MaybeRefOrGetter<T>,
   data: MaybeRefOrGetter<U>,
   options?: { mode: "eager" | "lazy" }
@@ -18,10 +12,11 @@ export default function <
 
   let unwatch: null | (() => void) = null;
 
-  const errors = ref<V | null>(null);
+  // const errors = ref<V | null>(null);
+  const errors = ref<Record<number, Record<string, string>>>({});
 
   const clearErrors = () => {
-    errors.value = null;
+    errors.value = {};
   };
 
   const validationWatch = () => {
@@ -40,22 +35,36 @@ export default function <
 
   const validate = async () => {
     clearErrors();
-
     const result = await toValue(schema).safeParseAsync(toValue(data));
     console.log({ result });
-
     isValid.value = result.success;
+    errors.value = {};
 
     if (!result.success) {
-      errors.value = groupBy(result.error.issues, "path");
+      const newErrors: Record<number, Record<string, string>> = {};
+
+      result.error.issues.forEach((fieldError: any) => {
+        const path = fieldError.path;
+        if (path.length >= 2 && typeof path[0] === "number") {
+          const rowIndex = path[0];
+          const fieldName = path[1] as string;
+
+          if (!newErrors[rowIndex]) {
+            newErrors[rowIndex] = {};
+          }
+          newErrors[rowIndex][fieldName] = fieldError.message;
+        }
+      });
+
+      errors.value = newErrors;
+      console.log({ errors: errors.value });
       validationWatch();
     }
 
     return errors;
   };
 
-  const getError = (path: string) =>
-    get(errors.value, `0,${path.replace(/\./g, ",")}.0.message`);
+  const getError = (name: string, index: number) => errors.value[index]?.[name];
 
   if (opts.mode === "eager") {
     validationWatch();

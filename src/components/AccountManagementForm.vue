@@ -29,32 +29,39 @@ const typeRecords = ref([
 ]);
 const accountsStore = useAccountsStore();
 const { accounts } = storeToRefs(accountsStore);
-const validationSchema = shallowRef<any>(
-  z.array(
-    z.object({
-      typeRecord: z.object(
-        {
-          name: z.literal(["LDAP", "Локальная"]),
-          type: z.literal(["ldap", "local"]),
-        },
-        "Выберите одно из значений"
-      ),
-      login: z
-        .string()
-        .nonempty("Логин не может быть пустым")
-        .max(100, "Логин не может быть больше 100 символов"),
-      password: z.nullable(
-        z
-          .string()
-          .min(8, "Пароль не может быть меньше 8 символов")
-          .max(100, "Пароль не может быть больше 100 символов")
-          .optional()
-      ),
-    })
-  )
-);
+const RowSchema = z.object({
+  label: z.nullable(
+    z
+      .array(
+        z.object({
+          text: z.string().nonempty("Метка не может быть пустой"),
+        })
+      )
+      .optional()
+  ),
+  typeRecord: z.object(
+    {
+      name: z.literal(["LDAP", "Локальная"]),
+      type: z.literal(["ldap", "local"]),
+    },
+    "Выберите одно из значений"
+  ),
+  login: z
+    .string()
+    .nonempty("Логин не может быть пустым")
+    .max(100, "Логин не может быть больше 100 символов"),
+  password: z.nullable(
+    z
+      .string()
+      .min(8, "Пароль не может быть меньше 8 символов")
+      .max(100, "Пароль не может быть больше 100 символов")
+      .optional()
+  ),
+});
+export type RowType = z.infer<typeof RowSchema>;
+const TableSchema = shallowRef<any>(z.array(RowSchema));
 const { validate, isValid, getError, clearErrors } = useValidation(
-  validationSchema,
+  TableSchema,
   accounts,
   {
     mode: "lazy",
@@ -169,7 +176,7 @@ onUnmounted(() => {
                 ? data[field].map((item) => item.text).join('; ')
                 : data[field] || ''
             "
-            :class="{ 'p-invalid': !!getError('label') }"
+            :class="{ 'p-invalid': !!getError('label', index) }"
             @blur="onBlure"
             @update:modelValue="
               (val) => {
@@ -188,15 +195,16 @@ onUnmounted(() => {
             autofocus="true"
             maxlength="50"
           />
-          <div class="error">{{ getError("label") }}</div>
+          <div class="error">{{ getError("label", index) }}</div>
         </template>
       </Column>
       <Column field="typeRecord" header="Тип записи" style="width: 24%">
-        <template #body="{ data, field }">
+        <template #body="{ data, field, index }">
           <div class="relative">
             <Select
               v-if="field && typeof field === 'string'"
               :options="typeRecords"
+              :class="{ 'p-invalid': !!getError('typeRecord', index) }"
               optionLabel="name"
               v-model="data[field]"
               placeholder="Тип записи"
@@ -216,7 +224,7 @@ onUnmounted(() => {
               "
             />
             <div class="error absolute top-10 left-0">
-              {{ getError("typeRecord") }}
+              {{ getError("typeRecord", index) }}
             </div>
           </div>
         </template></Column
@@ -230,13 +238,13 @@ onUnmounted(() => {
               type="text"
               v-model="data[field]"
               required
-              :class="{ 'p-invalid': !!getError('login') }"
+              :class="{ 'p-invalid': !!getError('login', index) }"
               @blur="onBlure"
               @update:modelValue="succeeded = false"
               maxlength="100"
             />
             <div class="error absolute top-10 left-0">
-              {{ getError("login") }}
+              {{ getError("login", index) }}
             </div>
           </div>
         </template></Column
@@ -261,12 +269,12 @@ onUnmounted(() => {
               required
               maxlength="100"
               minlength="8"
-              :class="{ 'p-invalid': !!getError('password') }"
+              :class="{ 'p-invalid': !!getError('password', index) }"
               @blur="onBlure"
               @update:modelValue="succeeded = false"
             />
             <div class="error absolute top-10 left-0">
-              {{ getError("password") }}
+              {{ getError("password", index) }}
             </div>
           </div>
         </template>
