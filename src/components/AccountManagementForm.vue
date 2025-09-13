@@ -40,10 +40,13 @@ const validationSchema = shallowRef<any>(
         "Выберите одно из значений"
       ),
       login: z.string().nonempty("Логин не может быть пустым"),
-      password: z
-        .string()
-        .min(8, "Пароль не может быть меньше 8 символов")
-        .max(100, "Пароль не может быть больше 100 символов"),
+      password: z.nullable(
+        z
+          .string()
+          .min(8, "Пароль не может быть меньше 8 символов")
+          .max(100, "Пароль не может быть больше 100 символов")
+          .optional()
+      ),
     })
   )
 );
@@ -193,7 +196,20 @@ onUnmounted(() => {
               optionLabel="name"
               v-model="data[field]"
               placeholder="Тип записи"
-              @value-change="onBlure"
+              @value-change="
+                () => {
+                  onBlure();
+                  if (data[field]?.type === 'ldap') {
+                    data.password = null;
+                  } else {
+                    if (!data.password) {
+                      data.password = '';
+                    }
+                  }
+
+                  succeeded = false;
+                }
+              "
             />
             <div class="error absolute top-10 left-0">
               {{ getError("typeRecord") }}
