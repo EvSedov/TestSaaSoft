@@ -22,10 +22,13 @@ const { accounts } = storeToRefs(accountsStore);
 const validationSchema = shallowRef<any>(
   z.array(
     z.object({
-      // typeRecord: z.object({
-      //   name: z.literal(["LDAP", "Локальная"]),
-      //   type: z.literal(["ldap", "local"]),
-      // }),
+      typeRecord: z.object(
+        {
+          name: z.literal(["LDAP", "Локальная"]),
+          type: z.literal(["ldap", "local"]),
+        },
+        "Выберите одно из значений"
+      ),
       login: z.string().nonempty("Логин не может быть пустым"),
       password: z
         .string()
@@ -146,15 +149,21 @@ watch(
       </Column>
       <Column field="typeRecord" header="Тип записи" style="width: 24%">
         <template #body="{ data, field }">
-          <Select
-            v-if="field && typeof field === 'string'"
-            :options="typeRecords"
-            optionLabel="name"
-            v-model="data[field]"
-            placeholder="Тип записи"
-            @value-change="onBlure"
-          /> </template
-      ></Column>
+          <div class="relative">
+            <Select
+              v-if="field && typeof field === 'string'"
+              :options="typeRecords"
+              optionLabel="name"
+              v-model="data[field]"
+              placeholder="Тип записи"
+              @value-change="onBlure"
+            />
+            <div class="error absolute top-10 left-0">
+              {{ getError("typeRecord") }}
+            </div>
+          </div>
+        </template></Column
+      >
       <Column field="login" header="Логин" style="width: 24%">
         <template #body="{ data, field, index }">
           <div class="relative">
