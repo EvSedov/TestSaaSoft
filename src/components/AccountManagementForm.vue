@@ -8,10 +8,20 @@ import Button from "primevue/button";
 import Message from "primevue/message";
 import { useAccountsStore } from "../store";
 import { storeToRefs } from "pinia";
-import { ref, watch, shallowRef } from "vue";
+import {
+  ref,
+  watch,
+  shallowRef,
+  type MaybeRefOrGetter,
+  toValue,
+  onMounted,
+  onUnmounted,
+} from "vue";
 import { z } from "zod";
 import useValidation from "../useValidation";
+import { debounce } from "lodash-es";
 
+const ACCOUNT_KEY = "accounts_local_data";
 const succeeded = ref<boolean>(false);
 const typeRecords = ref([
   { name: "LDAP", type: "ldap" },
@@ -52,20 +62,32 @@ const addAccount = () => {
     login: "",
     password: "",
   });
+  saveData(accounts);
 };
 
 const removeAccount = (index: number) => {
   accountsStore.removeAccount(index);
+  saveData(accounts);
 };
 
 const onBlure = async () => {
   await validate();
 
   if (isValid.value && !succeeded.value) {
-    alert("Validation succeeded!");
+    alert("Данные сохранены!");
+    saveData(accounts);
     succeeded.value = true;
   }
 };
+
+const saveData = debounce((data: MaybeRefOrGetter) => {
+  const text = JSON.stringify(toValue(data));
+  if (text.trim()) {
+    localStorage.setItem(ACCOUNT_KEY, text);
+  } else {
+    localStorage.removeItem(ACCOUNT_KEY);
+  }
+}, 300);
 
 watch(
   () => accounts.value,
@@ -77,6 +99,21 @@ watch(
   },
   { deep: true }
 );
+
+onMounted(() => {
+  try {
+    const data = localStorage.getItem(ACCOUNT_KEY);
+    if (data) {
+      accounts.value = JSON.parse(data);
+    }
+  } catch (error) {
+    console.error("Ошибка при загрузке данных:", error);
+  }
+});
+
+onUnmounted(() => {
+  saveData(accounts);
+});
 </script>
 
 <template>
