@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 
 interface Account {
-  label: [] | { text: string }[];
+  label: null | [] | { text: string }[];
   typeRecord: { name: "LDAP" | "Локальная"; type: "local" | "ldap" } | string;
   login: string;
   password: null | string;

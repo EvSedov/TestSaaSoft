@@ -118,10 +118,27 @@ watch(
             :id="`label-${index}`"
             v-if="field && typeof field === 'string'"
             type="text"
-            v-model="data[field]"
+            :value="
+              Array.isArray(data[field])
+                ? data[field].map((item) => item.text).join('; ')
+                : data[field] || ''
+            "
             :class="{ 'p-invalid': !!getError('label') }"
             @blur="onBlure"
-            @update:modelValue="succeeded = false"
+            @update:modelValue="
+              (val) => {
+                if (Array.isArray(data[field])) {
+                  data[field] = val
+                    ?.split(';')
+                    .map((s) => s.trim())
+                    // .filter((s) => s)
+                    .map((s) => ({ text: s }));
+                } else {
+                  data[field] = val;
+                }
+                succeeded = false;
+              }
+            "
             autofocus="true"
           />
           <div class="error">{{ getError("label") }}</div>
