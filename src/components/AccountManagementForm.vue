@@ -53,7 +53,7 @@ const validationSchema = shallowRef<any>(
     })
   )
 );
-const { validate, errors, isValid, getError, clearErrors } = useValidation(
+const { validate, isValid, getError, clearErrors } = useValidation(
   validationSchema,
   accounts,
   {
@@ -282,10 +282,6 @@ onUnmounted(() => {
         </template>
       </Column>
     </DataTable>
-    <div class="clear mt-4">
-      <strong>Valitation errors</strong>
-      <pre>{{ errors }}</pre>
-    </div>
   </div>
 </template>
 
