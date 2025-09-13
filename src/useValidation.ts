@@ -36,7 +36,6 @@ export default function <T extends ZodTypeAny, U = Record<string, unknown>>(
   const validate = async () => {
     clearErrors();
     const result = await toValue(schema).safeParseAsync(toValue(data));
-    console.log({ result });
     isValid.value = result.success;
     errors.value = {};
 
@@ -57,7 +56,6 @@ export default function <T extends ZodTypeAny, U = Record<string, unknown>>(
       });
 
       errors.value = newErrors;
-      console.log({ errors: errors.value });
       validationWatch();
     }
 

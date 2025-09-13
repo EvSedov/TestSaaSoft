@@ -127,7 +127,6 @@ watch(
     if (accounts.value.length === 0) {
       clearErrors();
     }
-    console.log(accounts.value);
   },
   { deep: true }
 );
@@ -199,7 +198,6 @@ onUnmounted(() => {
             @blur="onBlure"
             @update:modelValue="
               (val) => {
-                console.log({ val });
                 if (Array.isArray(data[field])) {
                   data[field] = val
                     ?.split(';')
