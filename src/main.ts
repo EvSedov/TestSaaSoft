@@ -1,9 +1,11 @@
 import { createApp } from "vue";
-import "./style.css";
-import App from "./App.vue";
-import PrimeVue from "primevue/config";
-import Aura from "@primeuix/themes/aura";
 import { createPinia } from "pinia";
+
+import App from "./App.vue";
+import Aura from "@primeuix/themes/aura";
+import PrimeVue from "primevue/config";
+
+import "./style.css";
 import "primeicons/primeicons.css";
 
 const app = createApp(App);
