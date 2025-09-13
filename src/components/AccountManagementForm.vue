@@ -39,7 +39,10 @@ const validationSchema = shallowRef<any>(
         },
         "Выберите одно из значений"
       ),
-      login: z.string().nonempty("Логин не может быть пустым"),
+      login: z
+        .string()
+        .nonempty("Логин не может быть пустым")
+        .max(100, "Логин не может быть больше 100 символов"),
       password: z.nullable(
         z
           .string()
@@ -183,6 +186,7 @@ onUnmounted(() => {
               }
             "
             autofocus="true"
+            maxlength="50"
           />
           <div class="error">{{ getError("label") }}</div>
         </template>
@@ -229,6 +233,7 @@ onUnmounted(() => {
               :class="{ 'p-invalid': !!getError('login') }"
               @blur="onBlure"
               @update:modelValue="succeeded = false"
+              maxlength="100"
             />
             <div class="error absolute top-10 left-0">
               {{ getError("login") }}
