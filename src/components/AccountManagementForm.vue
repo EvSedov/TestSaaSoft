@@ -180,14 +180,17 @@ onUnmounted(() => {
             @blur="onBlure"
             @update:modelValue="
               (val) => {
+                console.log({ val });
                 if (Array.isArray(data[field])) {
                   data[field] = val
                     ?.split(';')
                     .map((s) => s.trim())
                     // .filter((s) => s)
                     .map((s) => ({ text: s }));
-                } else {
-                  data[field] = val;
+                }
+
+                if (!val) {
+                  data[field] = [];
                 }
                 succeeded = false;
               }
