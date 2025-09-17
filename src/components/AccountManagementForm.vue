@@ -16,7 +16,7 @@ import {
   onMounted,
   onUnmounted,
 } from "vue";
-import useValidation from "../useValidation";
+import useValidation from "../composables/useValidation";
 import { debounce } from "lodash-es";
 import { useToast } from "primevue/usetoast";
 import { localStorageService } from "../services/localStorageService";
@@ -176,12 +176,12 @@ onUnmounted(() => {
             :id="`label-${index}`"
             v-if="field && typeof field === 'string'"
             type="text"
-            :value="formattingService.formatLabels(data[field])"
+            :value="formatLabels(data[field])"
             :class="{ 'p-invalid': !!getError('label', index) }"
             @blur="onBlure"
             @update:modelValue="
               (val: string | undefined) => {
-                formattingService.parseLabels(val)
+                parseLabels(val)
                 succeeded = false;
               }
             "
