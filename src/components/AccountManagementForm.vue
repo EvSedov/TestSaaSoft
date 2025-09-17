@@ -11,58 +11,28 @@ import { storeToRefs } from "pinia";
 import {
   ref,
   watch,
-  shallowRef,
   type MaybeRefOrGetter,
   toValue,
   onMounted,
   onUnmounted,
 } from "vue";
-import { z } from "zod";
 import useValidation from "../useValidation";
 import { debounce } from "lodash-es";
 import { useToast } from "primevue/usetoast";
 import { localStorageService } from "../services/localStorageService";
-const toast = useToast();
+import { TableSchema } from "../schemas/accountSchema";
 
-const ACCOUNT_KEY = "accounts_local_data";
-const succeeded = ref<boolean>(false);
-const typeRecords = ref([
+export const typeRecords = [
   { name: "LDAP", type: "ldap" },
   { name: "Локальная", type: "local" },
-]);
+];
+const toast = useToast();
+const ACCOUNT_KEY = "accounts_local_data";
+const succeeded = ref<boolean>(false);
+
 const accountsStore = useAccountsStore();
 const { accounts } = storeToRefs(accountsStore);
-const RowSchema = z.object({
-  label: z.nullable(
-    z
-      .array(
-        z.object({
-          text: z.string().nonempty("Метка не может быть пустой"),
-        })
-      )
-      .optional()
-  ),
-  typeRecord: z.object(
-    {
-      name: z.enum(["LDAP", "Локальная"]),
-      type: z.enum(["ldap", "local"]),
-    },
-    "Выберите одно из значений"
-  ),
-  login: z
-    .string()
-    .nonempty("Логин не может быть пустым")
-    .max(100, "Логин не может быть больше 100 символов"),
-  password: z.nullable(
-    z
-      .string()
-      .min(8, "Пароль не может быть меньше 8 символов")
-      .max(100, "Пароль не может быть больше 100 символов")
-      .optional()
-  ),
-});
-export type RowType = z.infer<typeof RowSchema>;
-const TableSchema = shallowRef<any>(z.array(RowSchema));
+
 const { validate, getError, clearErrors } = useValidation(
   TableSchema,
   accounts,
