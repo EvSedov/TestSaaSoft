@@ -21,6 +21,7 @@ import { z } from "zod";
 import useValidation from "../useValidation";
 import { debounce } from "lodash-es";
 import { useToast } from "primevue/usetoast";
+import { localStorageService } from "../services/localStorageService";
 const toast = useToast();
 
 const ACCOUNT_KEY = "accounts_local_data";
@@ -77,8 +78,7 @@ const addAccount = async () => {
     login: "",
     password: "",
   });
-  const errors = await validate();
-  saveData(accounts, errors);
+
   toast.add({
     severity: "success",
     summary: "Новая запись",
@@ -122,12 +122,12 @@ const saveData = debounce(
     const validData = toValue(data).filter(
       (_: any, index: number) => !errorsKeys.includes(index.toString())
     );
-    const text = JSON.stringify(validData);
-    if (text.trim()) {
-      localStorage.setItem(ACCOUNT_KEY, text);
+
+    if (validData) {
+      localStorageService.setItem(ACCOUNT_KEY, validData);
       return true;
     } else {
-      localStorage.removeItem(ACCOUNT_KEY);
+      localStorageService.removeItem(ACCOUNT_KEY);
     }
 
     return false;
@@ -142,12 +142,18 @@ watch(
 
 onMounted(() => {
   try {
-    const data = localStorage.getItem(ACCOUNT_KEY);
+    const data = localStorageService.getItem(ACCOUNT_KEY, null);
     if (data) {
-      accounts.value = JSON.parse(data);
+      accounts.value = data;
     }
   } catch (error) {
     console.error("Ошибка при загрузке данных:", error);
+    toast.add({
+      severity: "error",
+      summary: "Ошибка загрузки",
+      detail: "Не удалось загрузить данные учетных записей",
+      life: 3000,
+    });
   }
 });
 
