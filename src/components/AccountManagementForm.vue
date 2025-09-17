@@ -43,8 +43,8 @@ const RowSchema = z.object({
   ),
   typeRecord: z.object(
     {
-      name: z.literal(["LDAP", "Локальная"]),
-      type: z.literal(["ldap", "local"]),
+      name: z.enum(["LDAP", "Локальная"]),
+      type: z.enum(["ldap", "local"]),
     },
     "Выберите одно из значений"
   ),
@@ -62,7 +62,7 @@ const RowSchema = z.object({
 });
 export type RowType = z.infer<typeof RowSchema>;
 const TableSchema = shallowRef<any>(z.array(RowSchema));
-const { validate, isValid, getError, clearErrors } = useValidation(
+const { validate, getError, clearErrors } = useValidation(
   TableSchema,
   accounts,
   {
@@ -70,17 +70,18 @@ const { validate, isValid, getError, clearErrors } = useValidation(
   }
 );
 
-const addAccount = () => {
+const addAccount = async () => {
   accountsStore.addAccount({
     label: [],
     typeRecord: "",
     login: "",
     password: "",
   });
-  saveData(accounts);
+  const errors = await validate();
+  saveData(accounts, errors);
   toast.add({
     severity: "success",
-    summary: "Данные сохранены",
+    summary: "Новая запись",
     detail: "Добавлена новая пустая запись",
     life: 3000,
   });
@@ -98,37 +99,45 @@ const removeAccount = (index: number) => {
 };
 
 const onBlure = async () => {
-  await validate();
-
-  if (isValid.value && !succeeded.value) {
-    saveData(accounts);
+  const errors = await validate();
+  if (saveData(accounts, errors) && !succeeded.value) {
     toast.add({
       severity: "success",
       summary: "Данные сохранены",
-      detail: "Все записи провалидированы и обновлены",
+      detail: "Все валидные данные сохранены",
       life: 3000,
     });
     succeeded.value = true;
   }
 };
 
-const saveData = debounce((data: MaybeRefOrGetter) => {
-  const text = JSON.stringify(toValue(data));
-  if (text.trim()) {
-    localStorage.setItem(ACCOUNT_KEY, text);
-  } else {
-    localStorage.removeItem(ACCOUNT_KEY);
-  }
-}, 300);
+const saveData = debounce(
+  (
+    data: MaybeRefOrGetter,
+    errors: MaybeRefOrGetter<
+      Record<number, Record<string, string>>
+    > | null = null
+  ) => {
+    const errorsKeys = Object.keys(toValue(errors) || {});
+    const validData = toValue(data).filter(
+      (_: any, index: number) => !errorsKeys.includes(index.toString())
+    );
+    const text = JSON.stringify(validData);
+    if (text.trim()) {
+      localStorage.setItem(ACCOUNT_KEY, text);
+      return true;
+    } else {
+      localStorage.removeItem(ACCOUNT_KEY);
+    }
+
+    return false;
+  },
+  300
+);
 
 watch(
-  () => accounts.value,
-  () => {
-    if (accounts.value.length === 0) {
-      clearErrors();
-    }
-  },
-  { deep: true }
+  () => accounts.value.length,
+  () => clearErrors()
 );
 
 onMounted(() => {

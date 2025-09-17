@@ -7,12 +7,8 @@ export default function <T extends ZodTypeAny, U = Record<string, unknown>>(
   options?: { mode: "eager" | "lazy" }
 ) {
   const opts = Object.assign({}, { mode: "lazy" }, options);
-
   const isValid = ref(true);
-
   let unwatch: null | (() => void) = null;
-
-  // const errors = ref<V | null>(null);
   const errors = ref<Record<number, Record<string, string>>>({});
 
   const clearErrors = () => {
