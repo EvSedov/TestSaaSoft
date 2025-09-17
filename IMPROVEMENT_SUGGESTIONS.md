@@ -4,25 +4,87 @@
 
 На основе анализа проекта и обратной связи в README.md, предлагаю следующие улучшения для исправления оставшихся проблем, связанных с нарушениями принципов SOLID и слабой декомпозицией.
 
+## Понимание принципов SOLID
+
+SOLID - это пять основных принципов объектно-ориентированного программирования и дизайна, которые помогают создавать гибкие, поддерживаемые и масштабируемые системы:
+
+1. **SRP (Принцип единственной ответственности)** - У класса должна быть лишь одна причина для изменения
+2. **OCP (Принцип открытости/закрытости)** - Сущности должны быть открыты для расширения, но закрыты для модификации
+3. **LSP (Принцип подстановки Барбары Лисков)** - Объекты в программе должны быть заменяемы экземплярами их подтипов
+4. **ISP (Принцип разделения интерфейса)** - Клиенты не должны зависеть от методов, которые они не используют
+5. **DIP (Принцип инверсии зависимостей)** - Зависимости должны строиться относительно абстракций, а не деталей
+
+## Подробный анализ нарушений SOLID в проекте
+
+### 1. Принцип единственной ответственности (SRP)
+
+#### Нарушения в `AccountManagementForm.vue`:
+1. **Отображение UI** - рендеринг таблицы, форм, кнопок
+2. **Управление состоянием** - работа с Pinia store
+3. **Валидация данных** - использование хука `useValidation`
+4. **Работа с localStorage** - использование `localStorageService`
+5. **Бизнес-логика** - фильтрация валидных записей, обработка типов учетных записей
+6. **Форматирование данных** - преобразование меток из строки в массив и обратно
+7. **Обработка событий** - обработчики для кнопок, полей ввода
+
+#### Последствия:
+- Трудно тестировать отдельные части функциональности
+- Сложно вносить изменения без риска сломать другие части
+- Низкая переиспользуемость кода
+- Сложность понимания кода новыми разработчиками
+
+### 2. Принцип открытости/закрытости (OCP)
+
+#### Нарушения:
+1. **Типы учетных записей** - для добавления нового типа нужно изменять массив `typeRecords` и соответствующую логику
+2. **Логика сохранения данных** - для изменения способа сохранения нужно модифицировать существующую функцию `saveData`
+
+#### Последствия:
+- Любое расширение требует изменения существующего кода
+- Повышается вероятность ошибок при добавлении новой функциональности
+- Снижается гибкость системы
+
+### 3. Принцип подстановки Барбары Лисков (LSP)
+
+#### Нарушения:
+1. **Тип `typeRecord`** - может быть как объектом `{ name, type }`, так и строкой или пустым значением
+2. **Поле `password`** - может быть как строкой, так и `null`
+
+#### Последствия:
+- Непредсказуемое поведение при работе с данными
+- Необходимость постоянных проверок типов
+- Потенциальные ошибки во время выполнения
+
+### 4. Принцип разделения интерфейса (ISP)
+
+#### Нарушения:
+1. **Хук `useValidation`** - предоставляет множество функций, не все из которых могут использоваться в каждом месте
+2. **Компонент `AccountManagementForm.vue`** - содержит множество методов и логики, которые могут не использоваться полностью
+
+#### Последствия:
+- Зависимость от неиспользуемых методов
+- Сложность тестирования
+- Нарушение принципа минимальной достаточности
+
+### 5. Принцип инверсии зависимостей (DIP)
+
+#### Нарушения:
+1. **Прямые зависимости** - компонент напрямую зависит от конкретных реализаций сервисов
+2. **Отсутствие абстракций** - нет интерфейсов для основных сервисов
+
+#### Последствия:
+- Сложность тестирования (невозможно использовать моки)
+- Сильная связанность компонентов
+- Невозможность замены реализаций без изменения кода
+
 ## 1. Исправление нарушений SRP (Принцип единственной ответственности)
 
-### Проблема:
-Компонент `AccountManagementForm.vue` выполняет множество функций:
-- Отображение UI
-- Управление состоянием
-- Валидация данных
-- Работа с localStorage
-- Бизнес-логика
-- Форматирование данных
+Как показано в анализе выше, компонент `AccountManagementForm.vue` содержит множество функций, что нарушает принцип единственной ответственности. Для исправления этой проблемы необходимо разделить ответственности по отдельным модулям.
 
-### Решение:
-Разделить ответственности по отдельным модулям:
-
-#### 1.1 Создать отдельные сервисы:
+### 1.1 Создать отдельные сервисы:
 
 **`services/formattingService.ts`** - для форматирования данных:
 ```typescript
-// Сервис для работы с форматированием данных учетных записей
 export const formattingService = {
   // Преобразование строки меток в массив
   parseLabels(labelString: string): { text: string }[] {
@@ -41,13 +103,12 @@ export const formattingService = {
 };
 ```
 
-**`services/accountService.ts`** - для бизнес-логики работы с учетными записями:
+**`services/accountBusinessService.ts`** - для бизнес-логики работы с учетными записями:
 ```typescript
-// Сервис для бизнес-логики работы с учетными записями
 import { localStorageService } from "./localStorageService";
 import type { Account } from "../store";
 
-export const accountService = {
+export const accountBusinessService = {
   ACCOUNT_KEY: "accounts_local_data",
   
   // Фильтрация валидных записей
@@ -73,7 +134,19 @@ export const accountService = {
 };
 ```
 
-#### 1.2 Разделить компоненты:
+### 1.2 Разделить компоненты:
+
+**`components/AccountTable.vue`** - для отображения таблицы:
+```vue
+<!-- Компонент для отображения таблицы учетных записей -->
+<script setup lang="ts">
+// Только логика отображения таблицы
+</script>
+
+<template>
+  <!-- Шаблон таблицы -->
+</template>
+```
 
 **`components/AccountTableRow.vue`** - для отображения одной строки:
 ```vue
@@ -87,7 +160,7 @@ export const accountService = {
 </template>
 ```
 
-**`components/AccountEditForm.vue`** - для редактирования одной записи:
+**`components/AccountForm.vue`** - для редактирования одной записи:
 ```vue
 <!-- Компонент для редактирования данных одной учетной записи -->
 <script setup lang="ts">
@@ -99,102 +172,13 @@ export const accountService = {
 </template>
 ```
 
-## 2. Улучшение декомпозиции и соблюдение SOLID
-
-### Проблемы:
-- Слабая модульность
-- Сложность тестирования
-- Затрудненное расширение функциональности
-
-### Решения:
-
-#### 2.1 Принцип единственной ответственности (SRP):
-- Каждый модуль/класс/функция должна иметь одну причину для изменения
-- Разделить логику отображения, бизнес-логику и вспомогательные функции
-
-#### 2.2 Принцип открытости/закрытости (OCP):
-- Создать интерфейсы для сервисов, чтобы можно было расширять функциональность без изменения существующего кода
-- Например, возможность добавления новых типов учетных записей без изменения основной логики
-
-#### 2.3 Принцип подстановки Барбары Лисков (LSP):
-- Создать базовые интерфейсы для различных типов сервисов
-- Гарантировать, что реализации могут заменять друг друга
-
-#### 2.4 Принцип разделения интерфейса (ISP):
-- Разделить большие интерфейсы на более мелкие и специфичные
-- Например, отдельные интерфейсы для чтения и записи данных
-
-#### 2.5 Принцип инверсии зависимостей (DIP):
-- Внедрять зависимости через интерфейсы, а не конкретные реализации
-- Использовать контейнер внедрения зависимостей при необходимости
-
-## 3. Конкретные шаги для улучшения
-
-### 3.1 Рефакторинг компонента `AccountManagementForm.vue`:
-- Вынести всю бизнес-логику в отдельные сервисы
-- Оставить в компоненте только логику отображения и обработку событий UI
-
-### 3.2 Создание сервисов:
-
-**`services/validationService.ts`** - для валидации:
-```typescript
-// Модуль валидации учетных записей
-import { z } from "zod";
-
-export const AccountSchema = z.object({
-  // Схема для одной учетной записи
-});
-
-export const AccountsArraySchema = z.array(AccountSchema);
-
-export const validationService = {
-  // Валидация одной записи
-  validateAccount(data: unknown) {
-    return AccountSchema.safeParse(data);
-  },
-  
-  // Валидация массива записей
-  validateAccounts(data: unknown) {
-    return AccountsArraySchema.safeParse(data);
-  },
-  
-  // Получение ошибок по индексу и полю
-  getErrorByIndexAndField(errors: any, index: number, field: string) {
-    // Логика получения ошибок
-  }
-};
-```
-
-### 3.3 Улучшение структуры проекта:
-```
-src/
-├── components/          # Только UI компоненты
-│   ├── AccountManagementForm.vue  # Основной компонент (только координация)
-│   ├── AccountTableRow.vue        # Компонент строки таблицы
-│   ├── AccountEditForm.vue        # Компонент формы редактирования
-├── composables/         # Vue хуки
-│   └── useAccounts.ts             # Хук для работы с учетными записями
-├── services/            # Бизнес-логика
-│   ├── localStorageService.ts     # Сервис работы с localStorage
-│   ├── accountService.ts          # Сервис бизнес-логики учетных записей
-│   ├── formattingService.ts       # Сервис форматирования данных
-│   └── validationService.ts       # Сервис валидации
-├── schemas/             # Zod схемы
-│   └── accountSchema.ts           # Схемы Zod
-├── store/               # Pinia store
-│   └── index.ts                   # Хранилище Pinia
-├── App.vue                        # Корневой компонент
-└── main.ts                        # Точка входа
-```
-
-### 3.4 Создание хуков:
+### 1.3 Создать композиционные хуки:
 
 **`composables/useAccounts.ts`** - для работы с учетными записями:
 ```typescript
-// Хук для работы с учетными записями
-import { ref, Ref } from "vue";
+import { ref } from "vue";
 import { useAccountsStore } from "../store";
-import { accountService } from "../services/accountService";
+import { accountBusinessService } from "../services/accountBusinessService";
 import { useToast } from "primevue/usetoast";
 
 export function useAccounts() {
@@ -202,50 +186,178 @@ export function useAccounts() {
   const toast = useToast();
   const succeeded = ref(false);
   
-  // Методы работы с учетными записями
   const addAccount = () => {
-    // Логика добавления
+    store.addAccount({
+      label: [],
+      typeRecord: "",
+      login: "",
+      password: "",
+    });
+    
+    toast.add({
+      severity: "success",
+      summary: "Новая запись",
+      detail: "Добавлена новая пустая запись",
+      life: 3000,
+    });
   };
   
   const removeAccount = (index: number) => {
-    // Логика удаления
-  };
-  
-  const saveValidAccounts = (invalidIndices: number[]) => {
-    // Логика сохранения только валидных записей
+    store.removeAccount(index);
+    // Здесь можно вызвать сохранение, если нужно
   };
   
   return {
     accounts: store.accounts,
     succeeded,
     addAccount,
-    removeAccount,
-    saveValidAccounts
+    removeAccount
   };
 }
 ```
 
-### 3.5 Использование композиционных хуков
+## 2. Исправление нарушений OCP (Принцип открытости/закрытости)
 
-В `AccountManagementForm.vue` основная логика будет заменена на использование хуков:
+### 2.1 Создание интерфейса для типов учетных записей
 
+Создать `src/types/accountTypes.ts`:
 ```typescript
-// Вместо всей сложной логики в компоненте
-import { useAccounts } from "../composables/useAccounts";
-import { useValidation } from "../composables/useValidation";
-import { formattingService } from "../services/formattingService";
+export interface AccountType {
+  name: string;
+  type: string;
+  requiresPassword: boolean;
+}
 
-const { accounts, addAccount, removeAccount, saveValidAccounts } = useAccounts();
-const { validate, getError, clearErrors } = useValidation(/* параметры */);
+export class LDAPAccountType implements AccountType {
+  name = "LDAP";
+  type = "ldap";
+  requiresPassword = false;
+}
 
-// Обработчики событий становятся проще
-const handleBlur = async () => {
-  const validationResults = await validate();
-  saveValidAccounts(validationResults.invalidIndices);
-};
+export class LocalAccountType implements AccountType {
+  name = "Локальная";
+  type = "local";
+  requiresPassword = true;
+}
+
+export class AccountTypeFactory {
+  private static types: AccountType[] = [
+    new LDAPAccountType(),
+    new LocalAccountType()
+  ];
+  
+  static getAccountTypes(): AccountType[] {
+    return this.types;
+  }
+  
+  static getAccountTypeByType(type: string): AccountType | undefined {
+    return this.types.find(t => t.type === type);
+  }
+  
+  static addAccountType(type: AccountType): void {
+    // Теперь можно добавить новый тип без изменения существующего кода
+    this.types.push(type);
+  }
+}
 ```
 
-## 4. Преимущества предлагаемых изменений
+## 3. Исправление нарушений LSP (Принцип подстановки Барбары Лисков)
+
+### 3.1 Унификация типов данных
+
+В `src/store/index.ts` изменить интерфейс:
+```typescript
+interface Account {
+  label: { text: string }[];
+  typeRecord: { 
+    name: string; 
+    type: string;
+    requiresPassword: boolean;
+  };
+  login: string;
+  password: string | null;
+}
+```
+
+## 4. Исправление нарушений ISP (Принцип разделения интерфейса)
+
+### 4.1 Создание специализированных хуков
+
+Разделить `useValidation` на более специализированные хуки:
+
+1. **`useFieldValidation.ts`** - для валидации отдельных полей
+2. **`useFormValidation.ts`** - для валидации форм
+3. **`useErrorHandling.ts`** - для работы с ошибками
+
+### 4.2 Создание узкоспециализированных интерфейсов
+
+Вместо одного большого интерфейса для валидации, создать несколько маленьких:
+```typescript
+interface ValidationErrorHandler {
+  getError(fieldName: string, index: number): string | undefined;
+  clearErrors(): void;
+}
+
+interface ValidationResult {
+  isValid: boolean;
+  errors: Record<number, Record<string, string>>;
+}
+```
+
+## 5. Исправление нарушений DIP (Принцип инверсии зависимостей)
+
+### 5.1 Создание интерфейсов для сервисов
+
+Создать `src/interfaces/StorageService.ts`:
+```typescript
+export interface StorageService {
+  setItem<T>(key: string, value: T): void;
+  getItem<T>(key: string, defaultValue: T): T;
+  removeItem(key: string): void;
+  clear(): void;
+}
+```
+
+### 5.2 Внедрение зависимостей
+
+Вместо прямого импорта `localStorageService`, передавать его как зависимость:
+
+```typescript
+// В composables/useAccounts.ts
+export function useAccounts(storageService: StorageService) {
+  // Использовать переданный storageService
+}
+```
+
+## 6. Улучшение структуры проекта
+
+Новая структура проекта:
+```
+src/
+├── components/          # Только UI компоненты
+│   ├── AccountManagementForm.vue  # Основной компонент (только координация)
+│   ├── AccountTable.vue           # Компонент таблицы
+│   ├── AccountTableRow.vue        # Компонент строки таблицы
+│   ├── AccountForm.vue            # Компонент формы редактирования
+├── composables/         # Vue хуки
+│   └── useAccounts.ts             # Хук для работы с учетными записями
+├── services/            # Бизнес-логика
+│   ├── localStorageService.ts     # Сервис работы с localStorage
+│   ├── accountBusinessService.ts  # Сервис бизнес-логики учетных записей
+│   ├── formattingService.ts       # Сервис форматирования данных
+├── schemas/             # Zod схемы
+│   └── accountSchema.ts           # Схемы Zod
+├── store/               # Pinia store
+│   └── index.ts                   # Хранилище Pinia
+├── types/               # Типы и интерфейсы
+│   └── accountTypes.ts            # Типы учетных записей
+├── interfaces/          # Интерфейсы
+│   └── StorageService.ts          # Интерфейс для хранилища
+├── App.vue                        # Корневой компонент
+└── main.ts                        # Точка входа
+```
+
+## 7. Преимущества предлагаемых изменений
 
 1. **Соблюдение принципов SOLID**:
    - Четкое разделение ответственности
