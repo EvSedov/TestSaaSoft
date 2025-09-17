@@ -21,8 +21,9 @@ import { debounce } from "lodash-es";
 import { useToast } from "primevue/usetoast";
 import { localStorageService } from "../services/localStorageService";
 import { TableSchema } from "../schemas/accountSchema";
+import formattingService from "../services/formattingService";
 
-export const typeRecords = [
+const typeRecords = [
   { name: "LDAP", type: "ldap" },
   { name: "Локальная", type: "local" },
 ];
@@ -40,6 +41,7 @@ const { validate, getError, clearErrors } = useValidation(
     mode: "lazy",
   }
 );
+const { parseLabels, formatLabels } = formattingService;
 
 const addAccount = async () => {
   accountsStore.addAccount({
@@ -174,26 +176,12 @@ onUnmounted(() => {
             :id="`label-${index}`"
             v-if="field && typeof field === 'string'"
             type="text"
-            :value="
-              Array.isArray(data[field])
-                ? data[field].map((item) => item.text).join('; ')
-                : data[field] || ''
-            "
+            :value="formattingService.formatLabels(data[field])"
             :class="{ 'p-invalid': !!getError('label', index) }"
             @blur="onBlure"
             @update:modelValue="
-              (val) => {
-                if (Array.isArray(data[field])) {
-                  data[field] = val
-                    ?.split(';')
-                    .map((s) => s.trim())
-                    // .filter((s) => s)
-                    .map((s) => ({ text: s }));
-                }
-
-                if (!val) {
-                  data[field] = [];
-                }
+              (val: string | undefined) => {
+                formattingService.parseLabels(val)
                 succeeded = false;
               }
             "
