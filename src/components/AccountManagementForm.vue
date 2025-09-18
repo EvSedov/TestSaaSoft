@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { storeToRefs } from "pinia";
 import DataTable from "primevue/datatable";
 import Column from "primevue/column";
 import Select from "primevue/select";
@@ -6,8 +7,6 @@ import InputText from "primevue/inputtext";
 import Password from "primevue/password";
 import Button from "primevue/button";
 import Message from "primevue/message";
-import { useAccountsStore } from "../store";
-import { storeToRefs } from "pinia";
 import {
   ref,
   watch,
@@ -19,58 +18,29 @@ import {
 import useValidation from "../composables/useValidation";
 import { debounce } from "lodash-es";
 import { useToast } from "primevue/usetoast";
-import { localStorageService } from "../services/localStorageService";
-import { TableSchema } from "../schemas/accountSchema";
-import formattingService from "../services/formattingService";
+import { AccountsArraySchema } from "../services/accountValidation";
+import formattingService from "../services/accountFormattingService";
+import accountBusinessService from "../services/accountBusinessService";
+import { useAccountsStore } from "../store";
+import { useAccounts } from "../composables/useAccounts";
+import { AccountTypeFactory } from "../types/accountTypes";
 
-const typeRecords = [
-  { name: "LDAP", type: "ldap" },
-  { name: "Локальная", type: "local" },
-];
+const typeRecords = AccountTypeFactory.getAccountTypes();
 const toast = useToast();
-const ACCOUNT_KEY = "accounts_local_data";
 const succeeded = ref<boolean>(false);
-
-const accountsStore = useAccountsStore();
-const { accounts } = storeToRefs(accountsStore);
-
+const accountStore = useAccountsStore();
+const { accounts } = storeToRefs(accountStore);
 const { validate, getError, clearErrors } = useValidation(
-  TableSchema,
+  AccountsArraySchema,
   accounts,
   {
     mode: "lazy",
   }
 );
 const { parseLabels, formatLabels } = formattingService;
+const { addAccount, removeAccount } = useAccounts();
 
-const addAccount = async () => {
-  accountsStore.addAccount({
-    label: [],
-    typeRecord: "",
-    login: "",
-    password: "",
-  });
-
-  toast.add({
-    severity: "success",
-    summary: "Новая запись",
-    detail: "Добавлена новая пустая запись",
-    life: 3000,
-  });
-};
-
-const removeAccount = (index: number) => {
-  accountsStore.removeAccount(index);
-  saveData(accounts);
-  toast.add({
-    severity: "success",
-    summary: "Данные сохранены",
-    detail: "Запись успешно удалена",
-    life: 3000,
-  });
-};
-
-const onBlure = async () => {
+const handleBlure = async () => {
   const errors = await validate();
   if (saveData(accounts, errors) && !succeeded.value) {
     toast.add({
@@ -90,19 +60,15 @@ const saveData = debounce(
       Record<number, Record<string, string>>
     > | null = null
   ) => {
-    const errorsKeys = Object.keys(toValue(errors) || {});
-    const validData = toValue(data).filter(
-      (_: any, index: number) => !errorsKeys.includes(index.toString())
+    const errorsKeys = Object.keys(toValue(errors) || {}).map((item) =>
+      Number(item)
+    );
+    const validData = accountBusinessService.filterValidAccounts(
+      toValue(data),
+      errorsKeys
     );
 
-    if (validData) {
-      localStorageService.setItem(ACCOUNT_KEY, validData);
-      return true;
-    } else {
-      localStorageService.removeItem(ACCOUNT_KEY);
-    }
-
-    return false;
+    return accountBusinessService.saveAccounts(validData);
   },
   300
 );
@@ -114,10 +80,11 @@ watch(
 
 onMounted(() => {
   try {
-    const data = localStorageService.getItem(ACCOUNT_KEY, null);
+    const data = accountBusinessService.loadAccounts();
     if (data) {
       accounts.value = data;
     }
+    console.log({ typeRecords });
   } catch (error) {
     console.error("Ошибка при загрузке данных:", error);
     toast.add({
@@ -178,7 +145,7 @@ onUnmounted(() => {
             type="text"
             :value="formatLabels(data[field])"
             :class="{ 'p-invalid': !!getError('label', index) }"
-            @blur="onBlure"
+            @blur="handleBlure"
             @update:modelValue="
               (val: string | undefined) => {
                 parseLabels(val)
@@ -203,7 +170,7 @@ onUnmounted(() => {
               placeholder="Тип записи"
               @value-change="
                 () => {
-                  onBlure();
+                  handleBlure();
                   if (data[field]?.type === 'ldap') {
                     data.password = null;
                   } else {
@@ -232,7 +199,7 @@ onUnmounted(() => {
               v-model="data[field]"
               required
               :class="{ 'p-invalid': !!getError('login', index) }"
-              @blur="onBlure"
+              @blur="handleBlure"
               @update:modelValue="succeeded = false"
               maxlength="100"
             />
@@ -263,7 +230,7 @@ onUnmounted(() => {
               maxlength="100"
               minlength="8"
               :class="{ 'p-invalid': !!getError('password', index) }"
-              @blur="onBlure"
+              @blur="handleBlure"
               @update:modelValue="succeeded = false"
             />
             <div class="error absolute top-10 left-0">
