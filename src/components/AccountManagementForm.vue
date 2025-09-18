@@ -40,7 +40,7 @@ const { validate, getError, clearErrors } = useValidation(
 const { parseLabels, formatLabels } = formattingService;
 const { addAccount, removeAccount } = useAccounts();
 
-const handleBlure = async () => {
+const handleBlur = async () => {
   const errors = await validate();
   if (saveData(accounts, errors) && !succeeded.value) {
     toast.add({
@@ -145,7 +145,7 @@ onUnmounted(() => {
             type="text"
             :value="formatLabels(data[field])"
             :class="{ 'p-invalid': !!getError('label', index) }"
-            @blur="handleBlure"
+            @blur="handleBlur"
             @update:modelValue="
               (val: string | undefined) => {
                 parseLabels(val)
@@ -170,13 +170,10 @@ onUnmounted(() => {
               placeholder="Тип записи"
               @value-change="
                 () => {
-                  handleBlure();
+                  handleBlur();
+                  // Для LDAP записей пароль не требуется, поэтому сбрасываем его
                   if (data[field]?.type === 'ldap') {
                     data.password = null;
-                  } else {
-                    if (!data.password) {
-                      data.password = '';
-                    }
                   }
 
                   succeeded = false;
@@ -199,7 +196,7 @@ onUnmounted(() => {
               v-model="data[field]"
               required
               :class="{ 'p-invalid': !!getError('login', index) }"
-              @blur="handleBlure"
+              @blur="handleBlur"
               @update:modelValue="succeeded = false"
               maxlength="100"
             />
@@ -230,7 +227,7 @@ onUnmounted(() => {
               maxlength="100"
               minlength="8"
               :class="{ 'p-invalid': !!getError('password', index) }"
-              @blur="handleBlure"
+              @blur="handleBlur"
               @update:modelValue="succeeded = false"
             />
             <div class="error absolute top-10 left-0">
