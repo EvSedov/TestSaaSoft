@@ -2,7 +2,7 @@
  * Сервис для работы с localStorage
  */
 
-interface LocalStorageService {
+export interface LocalStorageService {
   /**
    * Сохраняет значение в localStorage
    * @param key - ключ для сохранения значения

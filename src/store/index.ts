@@ -1,13 +1,18 @@
 import { defineStore } from "pinia";
 
+export type RecordType = {
+  name: string;
+  type: string;
+  requiresPassword: boolean;
+};
 export interface Account {
-  label: [] | { text: string }[];
-  typeRecord: { name: "LDAP" | "Локальная"; type: "local" | "ldap" } | string;
+  label: { text: string }[];
+  typeRecord: RecordType;
   login: string;
   password: null | string;
 }
 
-export const useAccountsStore = defineStore("accounts", {
+export const useAccountsStore = defineStore("accountsStore", {
   state: () => ({
     accounts: [] as Account[],
   }),
