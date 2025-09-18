@@ -148,7 +148,7 @@ onUnmounted(() => {
             @blur="handleBlur"
             @update:modelValue="
               (val: string | undefined) => {
-                parseLabels(val)
+                data[field] = parseLabels(val);
                 succeeded = false;
               }
             "
