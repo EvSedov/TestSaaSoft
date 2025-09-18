@@ -1,6 +1,16 @@
 import { ref, watch, toValue, type MaybeRefOrGetter } from "vue";
 import type { ZodTypeAny } from "zod/v3";
 
+// interface ValidationErrorHandler {
+//   getError(fieldName: string, index: number): string | undefined;
+//   clearErrors(): void;
+// }
+
+// interface ValidationResult {
+//   isValid: boolean;
+//   errors: Record<number, Record<string, string>>;
+// }
+
 export default function <T extends ZodTypeAny, U = Record<string, unknown>>(
   schema: MaybeRefOrGetter<T>,
   data: MaybeRefOrGetter<U>,
